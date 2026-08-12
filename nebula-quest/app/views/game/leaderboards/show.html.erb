@@ -1,0 +1,25 @@
+<% title "Leaderboard" %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <p class="md-section__eyebrow">Galaxy ranks</p>
+    <h1 class="md-section__heading">Leaderboard</h1>
+    <div class="md-card md-card--outlined" style="overflow:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr><th align="left">#</th><th align="left">Pilot</th><th align="right">Score</th><th align="right">Ore</th><th align="right">Time</th></tr></thead>
+        <tbody>
+          <% @runs.each_with_index do |run, i| %>
+            <tr style="border-top:1px solid color-mix(in srgb, var(--md-sys-color-outline) 30%, transparent);">
+              <td><%= i + 1 %></td>
+              <td><%= run.user.email.split("@").first %></td>
+              <td align="right"><%= run.score %></td>
+              <td align="right"><%= run.ore_collected %></td>
+              <td align="right"><%= (run.duration_ms / 1000.0).round(1) %>s</td>
+            </tr>
+          <% end %>
+          <% if @runs.empty? %><tr><td colspan="5">No pilots yet. Be the first.</td></tr><% end %>
+        </tbody>
+      </table>
+    </div>
+    <div class="md-actions" style="margin-top:1rem;"><%= link_to "Back to play", game_root_path, class: "md-button md-button--filled" %></div>
+  </div>
+</section>

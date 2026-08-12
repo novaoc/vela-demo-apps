@@ -1,0 +1,27 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
+  username: <%= ENV.fetch("DATABASE_USERNAME") { ENV["USER"] } %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "") %>
+
+development:
+  <<: *default
+  database: nebula_quest_development
+
+test:
+  <<: *default
+  database: nebula_quest_test
+
+production:
+  primary:
+    <<: *default
+<% if ENV["DATABASE_URL"].present? %>
+    url: <%= ENV["DATABASE_URL"] %>
+<% else %>
+    database: nebula_quest_production
+    username: nebula_quest
+    password: <%= ENV["NEBULA_QUEST_DATABASE_PASSWORD"] %>
+<% end %>

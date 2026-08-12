@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="${HOME}/.local/bin:/opt/homebrew/opt/libpq/bin:$PATH"
+export LDFLAGS="-L/opt/homebrew/opt/libpq/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/libpq/include"
+export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"
+eval "$(mise activate bash)" 2>/dev/null || true
+
+export DATABASE_HOST="${DATABASE_HOST:-127.0.0.1}"
+export DATABASE_USERNAME="${DATABASE_USERNAME:-postgres}"
+export DATABASE_PASSWORD="${DATABASE_PASSWORD:-postgres}"
+
+apps=(lumen-market northstar-crm nebula-quest pokevault echo-chat)
+for app in "${apps[@]}"; do
+  echo "==== setup $app ===="
+  cd "$ROOT/$app"
+  bundle config set --local path 'vendor/bundle'
+  bundle install
+  db=$(echo "$app" | tr '-' '_')
+  export DATABASE_URL="postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:5432/${db}_development"
+  bin/rails db:prepare
+  bin/rails db:seed || true
+done
+echo "All apps prepared."

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -eo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="${HOME}/.local/bin:/opt/homebrew/opt/libpq/bin:/opt/homebrew/opt/postgresql@15/bin:$PATH"
+eval "$(mise activate bash)" 2>/dev/null || true
+
+mkdir -p "$ROOT/logs" "$ROOT/tmp"
+
+start_one() {
+  local app="$1" port="$2"
+  local pidfile="$ROOT/tmp/${app}.pid"
+  if [[ -f "$pidfile" ]] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
+    echo "$app already running on :$port (pid $(cat "$pidfile"))"
+    return
+  fi
+  echo "Starting $app on :$port"
+  (
+    cd "$ROOT/$app"
+    export APP_HOST="http://localhost:${port}"
+    export RAILS_ENV=development
+    exec bundle exec rails server -b 127.0.0.1 -p "$port"
+  ) >"$ROOT/logs/${app}.log" 2>&1 &
+  echo $! >"$pidfile"
+}
+
+start_one lumen-market 3001
+start_one northstar-crm 3002
+start_one nebula-quest 3003
+start_one pokevault 3004
+start_one echo-chat 3005
+
+echo
+echo "Apps:"
+echo "  Lumen Market   http://localhost:3001"
+echo "  Northstar CRM  http://localhost:3002"
+echo "  Nebula Quest   http://localhost:3003"
+echo "  PokeVault      http://localhost:3004"
+echo "  Echo Chat      http://localhost:3005"
+echo "Logs in $ROOT/logs/"

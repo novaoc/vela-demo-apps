@@ -1,0 +1,23 @@
+<% title "Card catalog" %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <h1 class="md-section__heading">Catalog</h1>
+    <%= form_with url: cards_path, method: :get, local: true, class: "md-actions" do %>
+      <input type="search" name="q" value="<%= @q %>" placeholder="Search name or set" class="md-text-field" style="min-width:240px;padding:.75rem;border-radius:12px;border:1px solid var(--md-sys-color-outline);">
+      <button class="md-button md-button--filled" type="submit">Search</button>
+    <% end %>
+    <div class="md-grid" style="margin-top:1rem;">
+      <% @cards.each do |card| %>
+        <article class="md-card md-card--outlined">
+          <div style="font-size:2rem;"><%= card.image_emoji %></div>
+          <h3><%= link_to card.name, card_path(card) %></h3>
+          <p><%= card.set_name %> #<%= card.number %> · <%= card.rarity %></p>
+          <p style="font-weight:700;"><%= number_to_currency(card.market_price) %></p>
+          <% if user_signed_in? %>
+            <%= button_to "Add to vault", holdings_path(pokemon_card_id: card.id, quantity: 1, cost_basis_cents: card.market_price_cents), class: "md-button md-button--filled" %>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</section>

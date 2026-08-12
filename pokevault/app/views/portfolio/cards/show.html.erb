@@ -1,0 +1,17 @@
+<% title @card.name %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <p class="md-section__eyebrow"><%= @card.set_name %></p>
+    <h1 class="md-section__heading"><%= @card.image_emoji %> <%= @card.name %></h1>
+    <article class="md-card md-card--filled">
+      <p>Number #<%= @card.number %> · <%= @card.rarity %></p>
+      <p style="font-size:2rem;font-weight:700;"><%= number_to_currency(@card.market_price) %></p>
+      <% if user_signed_in? %>
+        <%= button_to "Add 1 to vault @ mark", holdings_path(pokemon_card_id: @card.id, quantity: 1, cost_basis_cents: @card.market_price_cents), class: "md-button md-button--filled" %>
+      <% else %>
+        <%= link_to "Sign in to collect", new_user_session_path, class: "md-button md-button--filled" %>
+      <% end %>
+    </article>
+    <%= link_to "Back to catalog", cards_path, class: "md-button md-button--text", style: "margin-top:1rem;display:inline-flex;" %>
+  </div>
+</section>

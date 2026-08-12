@@ -1,0 +1,34 @@
+<% title @conversation.subject %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <p class="md-section__eyebrow"><%= @conversation.visitor_name %> · <%= @conversation.status %></p>
+    <h1 class="md-section__heading"><%= @conversation.subject %></h1>
+    <div class="md-card md-card--outlined" style="padding:1rem;max-height:420px;overflow:auto;margin-bottom:1rem;">
+      <% @messages.each do |m| %>
+        <div style="margin:.75rem 0;<%= 'text-align:right;' if m.sender_type != 'visitor' %>">
+          <small><%= m.sender_type %><%= " · bot" if m.from_bot %></small>
+          <div class="md-card <%= m.sender_type == 'visitor' ? 'md-card--filled' : 'md-card--elevated' %>" style="display:inline-block;padding:.75rem 1rem;max-width:80%;"><%= simple_format(m.body) %></div>
+        </div>
+      <% end %>
+    </div>
+    <%= form_with url: chat_conversation_path(@conversation), method: :patch, local: true, class: "md-actions" do %>
+      <input type="hidden" name="claim" value="1">
+      <textarea name="message" rows="2" placeholder="Reply as agent…" style="flex:1;min-width:240px;padding:.75rem;border-radius:12px;border:1px solid var(--md-sys-color-outline);"></textarea>
+      <button class="md-button md-button--filled" type="submit">Send</button>
+    <% end %>
+    <div class="md-actions" style="margin-top:.75rem;">
+      <%= button_to "Mark pending", chat_conversation_path(@conversation, status: "pending"), method: :patch, class: "md-button md-button--outlined" %>
+      <%= button_to "Close", chat_conversation_path(@conversation, status: "closed"), method: :patch, class: "md-button md-button--outlined" %>
+      <%= link_to "Public widget", chat_widget_path(@conversation), class: "md-button md-button--text", target: "_blank" %>
+      <%= link_to "Back to inbox", chat_inbox_path, class: "md-button md-button--text" %>
+    </div>
+    <% if @replies.any? %>
+      <h3>Insert macro</h3>
+      <div class="md-actions">
+        <% @replies.each do |r| %>
+          <%= button_to r.title, chat_conversation_path(@conversation, message: r.body, claim: "1"), method: :patch, class: "md-button md-button--tonal" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>

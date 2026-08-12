@@ -1,0 +1,56 @@
+<% title "Your Vault" %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <p class="md-section__eyebrow">PokeVault</p>
+    <h1 class="md-section__heading">Portfolio tracker</h1>
+    <p>Track card cost basis against live catalog marks. Demo prices are seeded for local play.</p>
+    <div class="md-grid" style="margin:1rem 0;">
+      <article class="md-card md-card--filled"><h3>Market value</h3><p style="font-size:1.75rem;font-weight:700;"><%= number_to_currency(@market_value/100.0) %></p></article>
+      <article class="md-card md-card--outlined"><h3>Cost basis</h3><p style="font-size:1.75rem;font-weight:700;"><%= number_to_currency(@cost/100.0) %></p></article>
+      <article class="md-card md-card--outlined"><h3>Unrealized</h3><p style="font-size:1.75rem;font-weight:700;color:<%= @gain >= 0 ? 'green' : 'crimson' %>;"><%= number_to_currency(@gain/100.0) %></p></article>
+    </div>
+
+    <% if user_signed_in? %>
+      <h2>Holdings</h2>
+      <div class="md-card md-card--outlined" style="overflow:auto;margin-bottom:1.5rem;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr><th align="left">Card</th><th>Qty</th><th align="right">Mark</th><th align="right">Value</th><th align="right">P/L</th><th></th></tr></thead>
+          <tbody>
+          <% @holdings.each do |h| %>
+            <tr style="border-top:1px solid color-mix(in srgb, var(--md-sys-color-outline) 30%, transparent);">
+              <td><%= h.pokemon_card.image_emoji %> <%= h.pokemon_card.name %> <small>(<%= h.condition %>)</small></td>
+              <td align="center"><%= h.quantity %></td>
+              <td align="right"><%= number_to_currency(h.pokemon_card.market_price) %></td>
+              <td align="right"><%= number_to_currency(h.market_value_cents/100.0) %></td>
+              <td align="right"><%= number_to_currency(h.gain_cents/100.0) %></td>
+              <td align="right"><%= button_to "Remove", holding_path(h), method: :delete, class: "md-button md-button--text" %></td>
+            </tr>
+          <% end %>
+          <% if @holdings.empty? %><tr><td colspan="6">No cards yet — browse the catalog.</td></tr><% end %>
+          </tbody>
+        </table>
+      </div>
+      <%= link_to "Browse catalog", cards_path, class: "md-button md-button--filled" %>
+    <% else %>
+      <div class="md-card md-card--filled" style="padding:1.25rem;">
+        <p>Sign in to build a vault and track gains.</p>
+        <div class="md-actions">
+          <%= link_to "Create account", new_user_registration_path, class: "md-button md-button--filled" %>
+          <%= link_to "Browse catalog", cards_path, class: "md-button md-button--outlined" %>
+        </div>
+      </div>
+    <% end %>
+
+    <h2 style="margin-top:2rem;">Hot cards</h2>
+    <div class="md-grid">
+      <% @top_cards.each do |card| %>
+        <article class="md-card md-card--outlined">
+          <div style="font-size:2rem;"><%= card.image_emoji %></div>
+          <h3><%= link_to card.name, card_path(card) %></h3>
+          <p><%= card.set_name %> · <%= card.rarity %></p>
+          <p style="font-weight:700;"><%= number_to_currency(card.market_price) %></p>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</section>

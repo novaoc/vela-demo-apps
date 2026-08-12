@@ -1,0 +1,39 @@
+<% title "Inbox" %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <p class="md-section__eyebrow"><%= current_organization.name %></p>
+    <h1 class="md-section__heading">Inbox · <%= @open_count %> open</h1>
+    <div class="md-grid">
+      <div class="md-card md-card--outlined" style="grid-column: span 2;">
+        <h2>Conversations</h2>
+        <ul style="list-style:none;padding:0;">
+          <% @conversations.each do |c| %>
+            <li style="padding:.75rem 0;border-bottom:1px solid color-mix(in srgb, var(--md-sys-color-outline) 25%, transparent);">
+              <%= link_to chat_conversation_path(c) do %>
+                <strong><%= c.subject %></strong> · <%= c.visitor_name %> · <span class="md-chip"><%= c.status %></span>
+              <% end %>
+            </li>
+          <% end %>
+          <% if @conversations.empty? %><li>No chats yet. Share your public widget after a visitor writes in, or seed demo data.</li><% end %>
+        </ul>
+      </div>
+      <div class="md-card md-card--filled">
+        <h2>New canned reply</h2>
+        <%= form_with url: chat_canned_replies_path, method: :post, local: true do %>
+          <p><input name="title" placeholder="Title" required style="width:100%;padding:.6rem;border-radius:10px;border:1px solid var(--md-sys-color-outline);"></p>
+          <p><input name="trigger_keywords" placeholder="keywords, comma, separated" style="width:100%;padding:.6rem;border-radius:10px;border:1px solid var(--md-sys-color-outline);"></p>
+          <p><textarea name="body" required rows="4" style="width:100%;padding:.6rem;border-radius:10px;border:1px solid var(--md-sys-color-outline);"></textarea></p>
+          <button class="md-button md-button--filled" type="submit">Save</button>
+        <% end %>
+        <h3 style="margin-top:1rem;">Macros</h3>
+        <ul>
+          <% @replies.each do |r| %>
+            <li><strong><%= r.title %></strong> <small>(<%= r.trigger_keywords %>)</small>
+              <%= button_to "×", chat_canned_reply_path(r), method: :delete, class: "md-button md-button--text" %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

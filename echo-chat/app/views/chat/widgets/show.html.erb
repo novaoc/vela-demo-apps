@@ -1,0 +1,17 @@
+<% title "Chat" %>
+<section class="md-section">
+  <div class="md-section__inner" style="max-width:640px;margin:0 auto;">
+    <h1 class="md-section__heading">Chat with <%= @conversation.organization.name %></h1>
+    <div class="md-card md-card--outlined" style="padding:1rem;min-height:320px;">
+      <% @messages.each do |m| %>
+        <div style="margin:.6rem 0;<%= 'text-align:right;' if m.sender_type == 'visitor' %>">
+          <div class="md-card <%= m.sender_type == 'visitor' ? 'md-card--elevated' : 'md-card--filled' %>" style="display:inline-block;padding:.65rem .9rem;max-width:85%;"><%= simple_format(m.body) %></div>
+        </div>
+      <% end %>
+    </div>
+    <%= form_with url: chat_widget_path(@conversation), method: :patch, local: true, style: "margin-top:1rem;display:flex;gap:.5rem;" do %>
+      <input name="body" required placeholder="Type a message" style="flex:1;padding:.75rem;border-radius:12px;border:1px solid var(--md-sys-color-outline);">
+      <button class="md-button md-button--filled" type="submit">Send</button>
+    <% end %>
+  </div>
+</section>

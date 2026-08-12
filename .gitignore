@@ -1,0 +1,11 @@
+logs/
+tmp/
+_foundation/
+*/log/*
+*/tmp/*
+*/storage/*
+*/vendor/bundle/
+*/.bundle/
+*/node_modules/
+.DS_Store
+**/config/master.key

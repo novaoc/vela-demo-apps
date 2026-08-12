@@ -1,0 +1,115 @@
+<% title "Play Nebula Quest" %>
+<section class="md-section">
+  <div class="md-section__inner">
+    <p class="md-section__eyebrow">Arcade</p>
+    <h1 class="md-section__heading">Nebula Quest</h1>
+    <p>Mine asteroids, dodge debris, and bank ore before your hull fails. Arrow keys or WASD to move, Space to fire.</p>
+    <div class="md-grid" style="margin: 1rem 0;">
+      <article class="md-card md-card--filled"><h3>Best score</h3><p style="font-size:2rem;font-weight:700;"><%= @best %></p></article>
+      <article class="md-card md-card--outlined"><h3>Recent runs</h3>
+        <% if @recent.any? %>
+          <ul><% @recent.each do |r| %><li><%= r.score %> pts · <%= r.ore_collected %> ore · <%= (r.duration_ms/1000.0).round(1) %>s</li><% end %></ul>
+        <% else %><p>No runs yet. Launch below.</p><% end %>
+      </article>
+    </div>
+    <% unless user_signed_in? %>
+      <div class="md-card md-card--filled" style="padding:1.5rem;margin:1rem 0;">
+        <p>Sign in to launch your ship and save high scores.</p>
+        <div class="md-actions">
+          <%= link_to "Create account", new_user_registration_path, class: "md-button md-button--filled" %>
+          <%= link_to "Sign in", new_user_session_path, class: "md-button md-button--outlined" %>
+        </div>
+      </div>
+    <% else %>
+    <canvas id="nebula-canvas" width="900" height="520" style="width:100%;max-width:900px;background:#0b0614;border-radius:16px;border:1px solid color-mix(in srgb, var(--md-sys-color-outline) 40%, transparent);touch-action:none;"></canvas>
+    <div class="md-actions" style="margin-top:1rem;">
+      <button type="button" class="md-button md-button--filled" id="nq-start">Launch</button>
+      <%= link_to "Leaderboard", game_leaderboard_path, class: "md-button md-button--outlined" %>
+    </div>
+    <p id="nq-status" aria-live="polite" style="margin-top:.75rem;"></p>
+  </div>
+</section>
+<script>
+(() => {
+  const canvas = document.getElementById("nebula-canvas");
+  const ctx = canvas.getContext("2d");
+  const status = document.getElementById("nq-status");
+  const startBtn = document.getElementById("nq-start");
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  let running = false, keys = {}, ship, rocks, shots, particles, score, ore, hull, t0, last, raf;
+
+  function reset() {
+    ship = { x: canvas.width/2, y: canvas.height-70, w: 28, h: 28, cool: 0 };
+    rocks = []; shots = []; particles = [];
+    score = 0; ore = 0; hull = 100; t0 = performance.now(); last = t0;
+  }
+  function spawnRock() {
+    const r = 14 + Math.random()*28;
+    rocks.push({ x: Math.random()*canvas.width, y: -40, r, vy: 1.2+Math.random()*2.4, vx: (Math.random()-0.5)*1.4, hp: Math.ceil(r/12) });
+  }
+  function boom(x,y,c) {
+    for (let i=0;i<10;i++) particles.push({x,y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:20+Math.random()*20,c});
+  }
+  function draw() {
+    ctx.fillStyle = "#0b0614"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    for (let i=0;i<40;i++){ ctx.fillStyle=`rgba(255,255,255,${0.15+((i*37)%50)/100})`; ctx.fillRect((i*97)%canvas.width,(i*53)%canvas.height,2,2); }
+    ctx.fillStyle = "#c39bd3";
+    ctx.beginPath(); ctx.moveTo(ship.x, ship.y-ship.h/2); ctx.lineTo(ship.x-ship.w/2, ship.y+ship.h/2); ctx.lineTo(ship.x+ship.w/2, ship.y+ship.h/2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#f5b041"; shots.forEach(s => ctx.fillRect(s.x-2,s.y-8,4,12));
+    rocks.forEach(r => { ctx.fillStyle = "#7d3c98"; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.fill(); ctx.strokeStyle="#d2b4de"; ctx.stroke(); });
+    particles.forEach(p => { ctx.globalAlpha = Math.max(0,p.life/40); ctx.fillStyle=p.c; ctx.fillRect(p.x,p.y,3,3); ctx.globalAlpha=1; });
+    ctx.fillStyle = "#fff"; ctx.font = "16px system-ui"; ctx.fillText(`Score ${score}  Ore ${ore}  Hull ${Math.max(0,hull|0)}%`, 16, 28);
+  }
+  function step(now) {
+    if (!running) return;
+    const dt = Math.min(32, now-last); last = now;
+    const sp = 0.35*dt;
+    if (keys.ArrowLeft||keys.a||keys.A) ship.x -= sp;
+    if (keys.ArrowRight||keys.d||keys.D) ship.x += sp;
+    if (keys.ArrowUp||keys.w||keys.W) ship.y -= sp;
+    if (keys.ArrowDown||keys.s||keys.S) ship.y += sp;
+    ship.x = Math.max(20, Math.min(canvas.width-20, ship.x));
+    ship.y = Math.max(30, Math.min(canvas.height-20, ship.y));
+    ship.cool = Math.max(0, ship.cool-dt);
+    if ((keys[" "]||keys.Spacebar) && ship.cool<=0){ shots.push({x:ship.x,y:ship.y-20,vy:-0.7}); ship.cool=180; }
+    if (Math.random() < 0.03 + score/8000) spawnRock();
+    shots.forEach(s => s.y += s.vy*dt);
+    shots = shots.filter(s => s.y > -20);
+    rocks.forEach(r => { r.y += r.vy*dt*0.06; r.x += r.vx*dt*0.06; });
+    for (let i=rocks.length-1;i>=0;i--){
+      const r = rocks[i];
+      for (let j=shots.length-1;j>=0;j--){
+        const s = shots[j];
+        if (Math.hypot(s.x-r.x,s.y-r.y) < r.r){ r.hp--; shots.splice(j,1); boom(s.x,s.y,"#f7dc6f"); if(r.hp<=0){ score+=Math.round(r.r*3); ore+=Math.round(r.r/6); boom(r.x,r.y,"#bb8fce"); rocks.splice(i,1);} break; }
+      }
+    }
+    rocks.forEach(r => { if (Math.hypot(ship.x-r.x, ship.y-r.y) < r.r+12){ hull -= 0.35*dt; boom(ship.x,ship.y,"#ec7063"); }});
+    rocks = rocks.filter(r => r.y < canvas.height+50);
+    particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.life--; });
+    particles = particles.filter(p => p.life>0);
+    score += Math.floor(dt/120);
+    draw();
+    if (hull <= 0){ endGame(); return; }
+    raf = requestAnimationFrame(step);
+  }
+  async function endGame() {
+    running = false; cancelAnimationFrame(raf); draw();
+    const duration = Math.round(performance.now()-t0);
+    status.textContent = `Hull breached. Score ${score}. Saving run…`;
+    try {
+      const res = await fetch("<%= game_runs_path %>", {
+        method: "POST", headers: {"Content-Type":"application/json","X-CSRF-Token":csrf},
+        body: JSON.stringify({ run: { score, distance: Math.round(score*1.4), ore_collected: ore, duration_ms: duration, ship_name: "Scout" }})
+      });
+      const data = await res.json();
+      status.textContent = `Saved. Score ${data.score} · global rank #${data.rank}`;
+    } catch(e) { status.textContent = "Could not save run."; }
+  }
+  function start(){ if(running) return; reset(); running=true; status.textContent="Mining sector online."; last=performance.now(); raf=requestAnimationFrame(step); }
+  window.addEventListener("keydown", e => { keys[e.key]=true; if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault(); });
+  window.addEventListener("keyup", e => { keys[e.key]=false; });
+  startBtn.addEventListener("click", start);
+  reset(); draw();
+})();
+</script>
+<% end %>
